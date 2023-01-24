@@ -5,13 +5,18 @@
 #include "WiFiClientSecure.h"
 #include <PubSubClient.h>
 
-const char* wifi_ssid = "NANDY";
-const char* wifi_password = "nandylaresta";
-const char* mqtt_server = "27cc61dbaffc4da08cd0081cabd8cf01.s2.eu.hivemq.cloud";
+// Define the pins that we will use
+#define SENSOR 33
+#define LED 26
+#define DHTTYPE DHT11
+const char *wifi_ssid = "La maison grâce au Wifi";
+const char *wifi_password = "12345678";
+const char *mqtt_server = "27cc61dbaffc4da08cd0081cabd8cf01.s2.eu.hivemq.cloud";
 int mqtt_port = 8883;
-const char* mqtt_user = "ocres4ever";
-const char* mqtt_pass = "ocresse123";
-const char* client_id = "TD04_GP04";
+const char *mqtt_user = "ocres4ever";
+const char *mqtt_pass = "ocresse123";
+const char *client_id = "TD04_GP04";
+DHT_Unified dht(SENSOR, DHTTYPE);
 
 static const char ca_cert[] PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
@@ -47,21 +52,16 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 
-// Define the pins that we will use
-#define SENSOR 33
-#define LED 26
-#define DHTTYPE DHT11
-
-DHT_Unified dht(SENSOR, DHTTYPE);
-
 WiFiClientSecure client;
-PubSubClient mqtt_client(client); 
+PubSubClient mqtt_client(client);
 
-void connect_wifi() {
+void connect_wifi()
+{
   Serial.print("Connecting to WiFi");
   WiFi.begin(wifi_ssid, wifi_password);
   // attempt to connect to Wifi network:
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     // wait 2OOms for re-trying
     delay(200);
@@ -69,14 +69,15 @@ void connect_wifi() {
   Serial.println("\nConnected.");
 }
 
-void setup() {
+void setup()
+{
   // Begin serial communication
   Serial.begin(9600);
   delay(100);
 
   // Connect to WiFi
   connect_wifi();
-  
+
   // Configure MQTT server
   mqtt_client.setServer(mqtt_server, mqtt_port);
   client.setCACert(ca_cert);
@@ -89,9 +90,12 @@ void setup() {
   // Get temperature event and print its value
   float temp_measure = -999.0;
   dht.temperature().getEvent(&event);
-  if (isnan(event.temperature)) {
+  if (isnan(event.temperature))
+  {
     Serial.println(F("Error reading temperature!"));
-  } else {
+  }
+  else
+  {
     Serial.print(F("Temperature: "));
     Serial.print(event.temperature);
     Serial.println(F("°C"));
@@ -101,9 +105,12 @@ void setup() {
   // Get humidity event and print its value.
   float relative_humidity_measure = -999.0;
   dht.humidity().getEvent(&event);
-  if (isnan(event.relative_humidity)) {
+  if (isnan(event.relative_humidity))
+  {
     Serial.println(F("Error reading humidity!"));
-  } else {
+  }
+  else
+  {
     Serial.print(F("Humidity: "));
     Serial.print(event.relative_humidity);
     Serial.println(F("%"));
@@ -111,14 +118,20 @@ void setup() {
   }
 
   // Send data to the broker with MQTT
- mqtt_client.connect(client_id,mqtt_user,mqtt_pass);
- Serial.println(mqtt_client.connect(client_id,mqtt_user,mqtt_pass));
+  // ...
+  if (mqtt_client.connect(client_id, mqtt_user, mqtt_pass))
+  {
+    mqtt_client.publish("TD04_GP04/temp", String(temp_measure).c_str());
+    mqtt_client.publish("TD04_GP04/relhum",String( relative_humidity_measure).c_str());
+    
+  }
 
   Serial.println("Going to sleep for 5 seconds...");
   delay(100);
   ESP.deepSleep(5e6);
 }
 
-void loop() {
+void loop()
+{
   // Not needed anymore, the function is kept so Platformio does not complain.
 }
